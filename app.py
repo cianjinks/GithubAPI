@@ -3,16 +3,17 @@ import requests
 import os
 import math
 import json
+import pandas as pd
 
 from flask import Flask, render_template
 
-from bokeh.models import ColumnDataSource
+from bokeh.models import ColumnDataSource, Range1d
 from bokeh.resources import INLINE
 from bokeh.embed import components
 from bokeh.plotting import figure, column, row
-from bokeh.palettes import Viridis10
-from bokeh.models import CustomJS, TextInput, Button
-from bokeh.transform import jitter
+from bokeh.palettes import Viridis10, Category20c
+from bokeh.models import CustomJS, Select
+from bokeh.transform import jitter, cumsum
 
 app = Flask(__name__)
 
@@ -81,10 +82,10 @@ def index():
             i = i + 1
 
     # Scale points based on total contributions
-    size_data = [transform(value, 1, largest_contribution, 3, 15) for value in size_data]
+    size_data = [transform(value, 1, largest_contribution, 5, 20) for value in size_data]
 
-    fig = figure(x_range=[repos[owner] for owner in repos], plot_height=720, plot_width=1280, tooltips=[("User", "@login"), ("User ID", "@id"), ("Contributions", "@commit_count")], tools="pan,wheel_zoom,reset", active_drag="pan", active_scroll="wheel_zoom")
-    fig.circle(x=jitter("x", width=0.8, range=fig.x_range), y="y", source=source, size="size", color="color")
+    fig = figure(x_range=[repos[owner] for owner in repos], plot_height=720, plot_width=1280, toolbar_location=None, tooltips=[("User", "@login"), ("User ID", "@id"), ("Contributions", "@commit_count")], tools="pan,wheel_zoom,reset", active_drag="pan", active_scroll="wheel_zoom")
+    fig.circle(x=jitter("x", width=0.8, range=fig.x_range), y="y", source=source, size="size", color="color", fill_alpha=0.6)
     fig.xaxis.axis_label = "Repositories"
     fig.yaxis.axis_label = "Total Contributions by User"
     # fig.xaxis.major_label_orientation = math.pi/4
@@ -105,20 +106,37 @@ def index():
         commit_count = y_data
     )
 
-    button = Button(label="Add Repository", button_type="success")
-    text_input_owner = TextInput(value="default", title="Owner")
-    text_input_repo = TextInput(value="default", title="Repo")
+    select = Select(title="", value="vuejs/vue", options=[str(owner + '/' + repos[owner]) for owner in repos])
+    select_code = ""
+    with open("select.js", "r") as file:
+        select_code = file.read()
+    select.js_on_change("value", CustomJS(code=select_code))
 
-    # text_input_owner.js_on_change("value", CustomJS(code=text_input_code))
-    # text_input_repo.js_on_change("value", CustomJS(code=text_input_code))
-    button_code = ""
-    with open("button.js", "r") as file:
-        button_code = file.read()
-    button.js_on_click(CustomJS(args=dict(owner=text_input_owner, repo=text_input_repo), code=button_code))
+    x = { 'United States': 157, 'United Kingdom': 93, 'Japan': 89, 'China': 63,
+      'Germany': 44, 'India': 42, 'Italy': 40, 'Australia': 35, 'Brazil': 32,
+      'France': 31, 'Taiwan': 31, 'Spain': 29 }
 
+    data = pd.Series(x).reset_index(name='value').rename(columns={'index':'country'})
+    data['color'] = Category20c[len(x)]
 
-    column_layout = column([text_input_owner, text_input_repo, button])
-    layout = row([column_layout, fig])
+    # represent each value as an angle = value / total * 2pi
+    data['angle'] = data['value']/data['value'].sum() * 2*math.pi
+
+    p = figure(plot_height = 350, plot_width = 500, title="Pie Chart", toolbar_location=None,
+            tools="hover", tooltips="@country: @value")
+
+    p.wedge(x=0.33, y=0.5, radius=0.25,
+            start_angle=cumsum('angle', include_zero=True), end_angle=cumsum('angle'),
+            line_color="white", fill_color='color', source=data, legend_field='country')
+
+    p.axis.axis_label=None
+    p.axis.visible=False
+    p.grid.grid_line_color = None
+    p.x_range = Range1d(0, 1)
+    p.y_range = Range1d(0, 1)
+
+    column_layout = column([p, select])
+    layout = row([fig, column_layout])
     script, div = components(layout)
     return render_template(
         'index.html',

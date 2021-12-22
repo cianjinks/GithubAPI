@@ -1,0 +1,1 @@
+console.log('Selected value: ' + this.value)
