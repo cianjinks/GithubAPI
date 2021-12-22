@@ -1,3 +1,4 @@
+from bokeh.core.enums import SizingMode
 import requests
 import os
 import math
@@ -8,9 +9,9 @@ from flask import Flask, render_template
 from bokeh.models import ColumnDataSource
 from bokeh.resources import INLINE
 from bokeh.embed import components
-from bokeh.plotting import figure
+from bokeh.plotting import figure, column, row
 from bokeh.palettes import Viridis10
-from bokeh.models import WheelZoomTool
+from bokeh.models import CustomJS, TextInput, Button
 from bokeh.transform import jitter
 
 app = Flask(__name__)
@@ -63,7 +64,6 @@ def index():
     with open("data.json", "w") as file:
         for owner in repos:
             repo_data = get_repo(owner, repos[owner])
-            file.write(f"Repo: {repos[owner]}")
             json.dump(repo_data, file, indent=4)
             for contributor in repo_data:
                 login = contributor["login"]
@@ -79,7 +79,6 @@ def index():
                 if largest_contribution < total_contributions:
                     largest_contribution = total_contributions
             i = i + 1
-        # file.close()
 
     # Scale points based on total contributions
     size_data = [transform(value, 1, largest_contribution, 3, 15) for value in size_data]
@@ -106,7 +105,21 @@ def index():
         commit_count = y_data
     )
 
-    script, div = components(fig)
+    button = Button(label="Add Repository", button_type="success")
+    text_input_owner = TextInput(value="default", title="Owner")
+    text_input_repo = TextInput(value="default", title="Repo")
+
+    # text_input_owner.js_on_change("value", CustomJS(code=text_input_code))
+    # text_input_repo.js_on_change("value", CustomJS(code=text_input_code))
+    button_code = ""
+    with open("button.js", "r") as file:
+        button_code = file.read()
+    button.js_on_click(CustomJS(args=dict(owner=text_input_owner, repo=text_input_repo), code=button_code))
+
+
+    column_layout = column([text_input_owner, text_input_repo, button])
+    layout = row([column_layout, fig])
+    script, div = components(layout)
     return render_template(
         'index.html',
         plot_script=script,

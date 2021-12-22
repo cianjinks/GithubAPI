@@ -1,4 +1,4 @@
-Repo: vue[
+[
     {
         "login": "yyx990803",
         "id": 499550,
@@ -629,7 +629,7 @@ Repo: vue[
         "site_admin": false,
         "contributions": 4
     }
-]Repo: react[
+][
     {
         "login": "zpao",
         "id": 8445,
@@ -1260,7 +1260,7 @@ Repo: vue[
         "site_admin": false,
         "contributions": 28
     }
-]Repo: vscode[
+][
     {
         "login": "bpasero",
         "id": 900690,
@@ -1891,7 +1891,7 @@ Repo: vue[
         "site_admin": false,
         "contributions": 262
     }
-]Repo: logging-log4j2[
+][
     {
         "login": "garydgregory",
         "id": 1187639,
@@ -2016,7 +2016,7 @@ Repo: vue[
         "received_events_url": "https://api.github.com/users/carterkozak/received_events",
         "type": "User",
         "site_admin": false,
-        "contributions": 156
+        "contributions": 136
     },
     {
         "login": "vy",
@@ -2522,7 +2522,7 @@ Repo: vue[
         "site_admin": false,
         "contributions": 3
     }
-]Repo: go[
+][
     {
         "login": "rsc",
         "id": 104030,
@@ -2731,7 +2731,7 @@ Repo: vue[
         "received_events_url": "https://api.github.com/users/cherrymui/received_events",
         "type": "User",
         "site_admin": false,
-        "contributions": 1227
+        "contributions": 1228
     },
     {
         "login": "adg",
@@ -3153,7 +3153,7 @@ Repo: vue[
         "site_admin": false,
         "contributions": 324
     }
-]Repo: swift[
+][
     {
         "login": "swift-ci",
         "id": 15467072,
@@ -3551,7 +3551,7 @@ Repo: vue[
         "received_events_url": "https://api.github.com/users/adrian-prantl/received_events",
         "type": "User",
         "site_admin": false,
-        "contributions": 1254
+        "contributions": 1256
     },
     {
         "login": "davidungar",
@@ -3784,7 +3784,7 @@ Repo: vue[
         "site_admin": false,
         "contributions": 758
     }
-]Repo: atom[
+][
     {
         "login": "kevinsawicki",
         "id": 671378,
@@ -4415,7 +4415,7 @@ Repo: vue[
         "site_admin": false,
         "contributions": 119
     }
-]Repo: freeCodeCamp[
+][
     {
         "login": "QuincyLarson",
         "id": 985197,
@@ -4561,7 +4561,7 @@ Repo: vue[
         "received_events_url": "https://api.github.com/users/ojeytonwilliams/received_events",
         "type": "User",
         "site_admin": false,
-        "contributions": 641
+        "contributions": 642
     },
     {
         "login": "SaintPeter",
