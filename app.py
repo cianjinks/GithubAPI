@@ -1,4 +1,3 @@
-from bokeh.core.enums import SizingMode
 import requests
 import os
 import math
@@ -14,6 +13,7 @@ from bokeh.plotting import figure, column, row
 from bokeh.palettes import Viridis10, Category20c
 from bokeh.models import CustomJS, Select
 from bokeh.transform import jitter, cumsum
+from bokeh.core.enums import SizingMode
 
 app = Flask(__name__)
 
@@ -59,6 +59,9 @@ def index():
     id_data = []
     size_data = []
 
+    # map of 'repo_name' -> (map of 'login' -> 'total_contributions')
+    pie_data = {}
+
     largest_contribution = 0
 
     i = 0
@@ -66,6 +69,10 @@ def index():
         for owner in repos:
             repo_data = get_repo(owner, repos[owner])
             json.dump(repo_data, file, indent=4)
+
+            repo_name = str(owner + '/' + repos[owner])
+            pie_data[repo_name] = {}
+
             for contributor in repo_data:
                 login = contributor["login"]
                 id = contributor["id"]
@@ -76,6 +83,8 @@ def index():
                 size_data.append(float(total_contributions))
                 login_data.append(login)
                 id_data.append(id)
+
+                pie_data[repo_name][login] = total_contributions
 
                 if largest_contribution < total_contributions:
                     largest_contribution = total_contributions
@@ -106,34 +115,36 @@ def index():
         commit_count = y_data
     )
 
-    select = Select(title="", value="vuejs/vue", options=[str(owner + '/' + repos[owner]) for owner in repos])
-    select_code = ""
-    with open("select.js", "r") as file:
-        select_code = file.read()
-    select.js_on_change("value", CustomJS(code=select_code))
+    # Pie Chart
+    # ------------
 
-    x = { 'United States': 157, 'United Kingdom': 93, 'Japan': 89, 'China': 63,
-      'Germany': 44, 'India': 42, 'Italy': 40, 'Australia': 35, 'Brazil': 32,
-      'France': 31, 'Taiwan': 31, 'Spain': 29 }
+    # Data
+    default = "apple/swift"
+    top = 10 # Only display the top 10 contributors
+    data = pd.Series(pie_data[repo_name]).reset_index(name='contributions').rename(columns={'index':'login'}).nlargest(top, columns='contributions')
+    data['color'] = Category20c[top]
+    data['angle'] = (data['contributions'] / data['contributions'].sum()) * 2 * math.pi
+    pie_source = ColumnDataSource()
+    pie_source.data = data
 
-    data = pd.Series(x).reset_index(name='value').rename(columns={'index':'country'})
-    data['color'] = Category20c[len(x)]
+    # Chart
+    p = figure(plot_height = 350, plot_width = 500, title="Pie Chart (Top 10 Contributors)", toolbar_location=None,
+            tools="hover", tooltips="@login: @contributions")
 
-    # represent each value as an angle = value / total * 2pi
-    data['angle'] = data['value']/data['value'].sum() * 2*math.pi
-
-    p = figure(plot_height = 350, plot_width = 500, title="Pie Chart", toolbar_location=None,
-            tools="hover", tooltips="@country: @value")
-
-    p.wedge(x=0.33, y=0.5, radius=0.25,
-            start_angle=cumsum('angle', include_zero=True), end_angle=cumsum('angle'),
-            line_color="white", fill_color='color', source=data, legend_field='country')
+    p.wedge(x=0.33, y=0.5, radius=0.25, start_angle=cumsum('angle', include_zero=True), end_angle=cumsum('angle'),
+            line_color="white", fill_color='color', source=pie_source, legend_field='login')
 
     p.axis.axis_label=None
     p.axis.visible=False
     p.grid.grid_line_color = None
     p.x_range = Range1d(0, 1)
     p.y_range = Range1d(0, 1)
+
+    select = Select(title="", value=default, options=[str(owner + '/' + repos[owner]) for owner in repos])
+    select_code = ""
+    with open("select.js", "r") as file:
+        select_code = file.read()
+    select.js_on_change("value", CustomJS(code=select_code))
 
     column_layout = column([p, select])
     layout = row([fig, column_layout])
