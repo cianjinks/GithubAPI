@@ -1,4 +1,3 @@
-from bokeh.core.property.container import ColumnData
 import requests
 import os
 import math
@@ -31,11 +30,8 @@ repos = {
     "freeCodeCamp": "freeCodeCamp"
 }
 
-token = os.getenv('GITHUB_TOKEN', '...')
-headers = {
-    'Authorization': f'token {token}',
-    'Accept': 'application/vnd.github.v3+json'
-}
+token = None
+headers = None
 
 # Transform value t from range [a,b] to [c,d]
 def transform(t: float, a: float, b: float, c: float, d: float):
@@ -51,6 +47,17 @@ def get_repo(owner, repo) -> json:
 
 @app.route('/')
 def index():
+
+    if token is None or "":
+        return "<p>Failed to load Github API token!</p>"
+
+    if token[-1] == '\n':
+        return "<p>Invalid Github API token! (Hint: remove newline)</p>"
+    headers = {
+        'Authorization': f'token {token}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
+
     source = ColumnDataSource()
 
     x_data = []
@@ -148,15 +155,14 @@ def index():
     p.x_range = Range1d(0, 1)
     p.y_range = Range1d(0, 1)
 
-    # Test
     json_dump = json.dumps(pie_panda_data_json)
-    test = Button(label=json_dump)
+    json_pass = Button(label=json_dump)
 
     select = Select(title="", value=default, options=[str(owner + '/' + repos[owner]) for owner in repos])
     select_code = ""
     with open("select.js", "r") as file:
         select_code = file.read()
-    callback = CustomJS(args={"source": pie_source, "b":test}, code=select_code)
+    callback = CustomJS(args={"source": pie_source, "json_pass":json_pass}, code=select_code)
     select.js_on_change("value", callback)
 
     column_layout = column([p, select])
@@ -171,4 +177,9 @@ def index():
     ).encode(encoding='UTF-8')
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Setup
+    with open("gittoken.txt", "r") as file:
+        token = file.read()
+
+    # Run webapp
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
