@@ -1,3 +1,4 @@
+from bokeh.core.property.container import ColumnData
 import requests
 import os
 import math
@@ -11,7 +12,7 @@ from bokeh.resources import INLINE
 from bokeh.embed import components
 from bokeh.plotting import figure, column, row
 from bokeh.palettes import Viridis10, Category20c
-from bokeh.models import CustomJS, Select
+from bokeh.models import CustomJS, Select, Button
 from bokeh.transform import jitter, cumsum
 from bokeh.core.enums import SizingMode
 
@@ -119,13 +120,20 @@ def index():
     # ------------
 
     # Data
+    pie_panda_data = {}
+    pie_panda_data_json = {}
+    for owner in repos:
+        repo_name = owner + '/' + repos[owner]
+        top = 10 # Only display the top 10 contributors
+        data = pd.Series(pie_data[repo_name]).reset_index(name='contributions').rename(columns={'index':'login'}).nlargest(top, columns='contributions')
+        data['color'] = Category20c[top]
+        data['angle'] = (data['contributions'] / data['contributions'].sum()) * 2 * math.pi
+        pie_panda_data[repo_name] = data
+        pie_panda_data_json[repo_name] = json.loads(data.to_json())
+    
     default = "apple/swift"
-    top = 10 # Only display the top 10 contributors
-    data = pd.Series(pie_data[repo_name]).reset_index(name='contributions').rename(columns={'index':'login'}).nlargest(top, columns='contributions')
-    data['color'] = Category20c[top]
-    data['angle'] = (data['contributions'] / data['contributions'].sum()) * 2 * math.pi
     pie_source = ColumnDataSource()
-    pie_source.data = data
+    pie_source.data = pie_panda_data[default]
 
     # Chart
     p = figure(plot_height = 350, plot_width = 500, title="Pie Chart (Top 10 Contributors)", toolbar_location=None,
@@ -140,11 +148,16 @@ def index():
     p.x_range = Range1d(0, 1)
     p.y_range = Range1d(0, 1)
 
+    # Test
+    json_dump = json.dumps(pie_panda_data_json)
+    test = Button(label=json_dump)
+
     select = Select(title="", value=default, options=[str(owner + '/' + repos[owner]) for owner in repos])
     select_code = ""
     with open("select.js", "r") as file:
         select_code = file.read()
-    select.js_on_change("value", CustomJS(code=select_code))
+    callback = CustomJS(args={"source": pie_source, "b":test}, code=select_code)
+    select.js_on_change("value", callback)
 
     column_layout = column([p, select])
     layout = row([fig, column_layout])

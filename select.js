@@ -1,11 +1,17 @@
-console.log('Selected value: ' + this.value)
+if (!window.full_data_save) {
+    window.full_data_save = JSON.parse(b.label)
+}
+var full_data = window.full_data_save
+var new_data = { angle: [], color: [], contributions: [], index: [], login: []}
+for (var i = 0; i < source.data.index.length; i++) {
+    Object.keys(new_data).filter(key => key in full_data[this.value]).forEach(key => new_data[key].push(full_data[this.value][key][i]));
+}
+new_data.index = source.data.index
 
-// if (!window.full_data_save) {
-//     window.full_data_save = JSON.parse(JSON.stringify(this.sources));
-// }
+// Debug
+console.log(source.data)
+console.log(full_data[this.value])
+console.log(new_data)
 
-// var full_data = window.full_data_save;
-
-// var full_data = JSON.parse(JSON.stringify(this.source.data))
-// this.source.data = full_data[this.value].data;
-// this.source.change.emit();
+source.data = new_data
+source.change.emit()
