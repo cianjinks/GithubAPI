@@ -11,9 +11,8 @@ from bokeh.resources import INLINE
 from bokeh.embed import components
 from bokeh.plotting import figure, column, row
 from bokeh.palettes import Viridis10, Category20c
-from bokeh.models import CustomJS, Select, Button
+from bokeh.models import CustomJS, Select, Button, Paragraph
 from bokeh.transform import jitter, cumsum
-from bokeh.core.enums import SizingMode
 
 app = Flask(__name__)
 
@@ -31,23 +30,23 @@ repos = {
 }
 
 token = None
-headers = None
 
 # Transform value t from range [a,b] to [c,d]
 def transform(t: float, a: float, b: float, c: float, d: float):
     return c + ((d - c)/(b - a))*(t - a)
 
-def get_repo(owner, repo) -> json:
-    url = f"https://api.github.com/repos/{owner}/{repo}/contributors"
-    headers = {
-        'Authorization': f'token {token}',
-        'Accept': 'application/vnd.github.v3+json'
-    }
-
-    r = requests.get(url, headers=headers)
+def get_repo(headers, owner, repo) -> json:
     repo_data = []
-    if r.status_code == 200:
-        repo_data = r.json()
+
+    url = f"https://api.github.com/repos/{owner}/{repo}/contributors"
+
+    try:
+        r = requests.get(url, headers=headers)
+        if r.status_code == 200:
+            repo_data = r.json()
+    except (requests.ConnectionError, requests.Timeout):
+        pass
+
     return repo_data
 
 @app.route('/')
@@ -55,9 +54,18 @@ def index():
 
     if token is None or "":
         return "<p>Failed to load Github API token!</p>"
+    
+    headers = None
+    try:
+        headers = {
+            'Authorization': f'token {token}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+    except:
+        return "<p>Invalid Github API token! (Check for special characters, white space or mistakes)</p>"
 
-    if token[-1] == '\n':
-        return "<p>Invalid Github API token! (Hint: Try removing any newlines)</p>"
+    error_text = Paragraph(text="Failed to retrieve some Github API Data! (Check your API access token and git API server status)")
+    error = False
 
     source = ColumnDataSource()
 
@@ -76,7 +84,10 @@ def index():
     i = 0
     with open("data.json", "w") as file:
         for owner in repos:
-            repo_data = get_repo(owner, repos[owner])
+            repo_data = get_repo(headers, owner, repos[owner])
+            if repo_data == []:
+                error = True
+
             json.dump(repo_data, file, indent=4)
 
             repo_name = str(owner + '/' + repos[owner])
@@ -129,6 +140,12 @@ def index():
     pie_panda_data_json = {}
     for owner in repos:
         repo_name = owner + '/' + repos[owner]
+        if pie_data[repo_name] == {}:
+            data = { "angle": [], "color": [], "contributions": [], "index": [], "login": []}
+            pie_panda_data[repo_name] = data
+            pie_panda_data_json[repo_name] = json.loads(json.dumps(data))
+            continue
+
         top = 10 # Only display the top 10 contributors
         data = pd.Series(pie_data[repo_name]).reset_index(name='contributions').rename(columns={'index':'login'}).nlargest(top, columns='contributions')
         data['color'] = Category20c[top]
@@ -165,7 +182,13 @@ def index():
 
     column_layout = column([p, select])
     layout = row([fig, column_layout])
-    script, div = components(layout)
+
+    if error:
+        error_layout = column([error_text, layout])
+        script, div = components(error_layout)
+    else:
+        script, div = components(layout)
+
     return render_template(
         'index.html',
         plot_script=script,
@@ -178,6 +201,7 @@ if __name__ == "__main__":
     # Setup
     with open("gittoken.txt", "r") as file:
         token = file.read()
+        token = token.strip('\n')
 
     # Run webapp
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
