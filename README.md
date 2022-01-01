@@ -2,6 +2,10 @@
 
 ## Media
 
+![Visualization](media/1.png)
+![Scatter Plot](media/2.png)
+![Pie Chart][media/3.png]
+
 ## Running
 
 This project requires [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/) to run.
