@@ -39,6 +39,11 @@ def transform(t: float, a: float, b: float, c: float, d: float):
 
 def get_repo(owner, repo) -> json:
     url = f"https://api.github.com/repos/{owner}/{repo}/contributors"
+    headers = {
+        'Authorization': f'token {token}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
+
     r = requests.get(url, headers=headers)
     repo_data = []
     if r.status_code == 200:
@@ -52,11 +57,7 @@ def index():
         return "<p>Failed to load Github API token!</p>"
 
     if token[-1] == '\n':
-        return "<p>Invalid Github API token! (Hint: remove newline)</p>"
-    headers = {
-        'Authorization': f'token {token}',
-        'Accept': 'application/vnd.github.v3+json'
-    }
+        return "<p>Invalid Github API token! (Hint: Try removing any newlines)</p>"
 
     source = ColumnDataSource()
 
@@ -99,19 +100,16 @@ def index():
             i = i + 1
 
     # Scale points based on total contributions
-    size_data = [transform(value, 1, largest_contribution, 5, 20) for value in size_data]
+    size_data = [transform(value, 1, largest_contribution, 5, 40) for value in size_data]
 
     fig = figure(x_range=[repos[owner] for owner in repos], plot_height=720, plot_width=1280, toolbar_location=None, tooltips=[("User", "@login"), ("User ID", "@id"), ("Contributions", "@commit_count")], tools="pan,wheel_zoom,reset", active_drag="pan", active_scroll="wheel_zoom")
     fig.circle(x=jitter("x", width=0.8, range=fig.x_range), y="y", source=source, size="size", color="color", fill_alpha=0.6)
     fig.xaxis.axis_label = "Repositories"
     fig.yaxis.axis_label = "Total Contributions by User"
-    # fig.xaxis.major_label_orientation = math.pi/4
     fig.xaxis.major_label_text_font_size = '10pt'
     fig.yaxis.major_label_text_font_size = '10pt'
     fig.xaxis.axis_label_text_font_size = '15pt'
     fig.yaxis.axis_label_text_font_size = '15pt'
-
-    # fig.toolbar.active_scroll = "WheelZoomTool()"
 
     source.data = dict(
         x = x_data,
