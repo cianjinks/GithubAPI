@@ -5,6 +5,7 @@
 ![Visualization](media/1.png)
 ![Scatter Plot](media/2.png)
 ![Pie Chart](media/3.png)
+![Scatter Plot Tooltip](media/4.png)
 
 ## Running
 
